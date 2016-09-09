@@ -1,6 +1,7 @@
 #coding=utf-8
-#author@shibin
+#author@alingse
 #2015.11.19
+
 from copy import deepcopy
 from fs_util import dfpath
 from fs_util import get_subdir_host, get_subdirs, get_blocks
