@@ -12,6 +12,15 @@ def lspath(path):
     out = check_output(['ls',path])
     return out
 
+def childpath(path):
+    lines = lspath(path).split('\n')
+    childs = []
+    for line in lines:
+        child = os.path.join(path,line)
+        childs.append(child)
+
+    return childs
+
 
 def get_subdir_host(datapath):
     current = os.path.join(datapath,'current')
