@@ -3,6 +3,7 @@
 #2015.11.19
 
 from subprocess import check_output
+#import operator
 import sys
 import os
 import re
@@ -36,14 +37,11 @@ def get_subdir_host(datapath):
 
 
 def get_subdirs(host):
-    subdirs = []
-    first_subdir = lspath(host).split('\n')
-    for f_subdir in first_subdir:
-        second_subdir = lspath(host + '/' + f_subdir).split('\n')
-        for s_subdir in second_subdir:
-            subdirs.append(f_subdir + '/' + s_subdir)
-    return subdirs
-
+    childs_v0 = [host]
+    childs_v1 = reduce(list.__add__,map(childpath,childs_v0))
+    #childs_v1 = childpath(host)
+    childs_v2 = reduce(list.__add__,map(childpath,childs_v1))
+    return childs_v2
 
 def get_blocks(host, subdir):
     out = lspath(host + '/' + subdir)
