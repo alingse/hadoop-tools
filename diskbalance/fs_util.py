@@ -2,32 +2,28 @@
 #author@alingse
 #2015.11.19
 
-import commands
+from subprocess import check_output
 import sys
+import os
 import re
 
 
 def lspath(path):
-    status, out = commands.getstatusoutput('ls ' + path)
-    if status != 0:
-        raise Exception("unable run  \" ls " + path +
-                        " \" error ,please check it")
+    out = check_output(['ls',path])
     return out
 
 
-def get_subdir_host(dir):
-    out = lspath(dir + '/current')
-    for line in out.split('\n'):
+def get_subdir_host(datapath):
+    current = os.path.join(datapath,'current')
+    lines = lspath(current).split('\n')
+
+    for line in lines:
         if 'BP' in line:
-            host = dir + '/current/' + line + '/current/finalized'
-            try:
-                lspath(host)
-            except:
-                break
-            print "find the dir: %s ,subdir host: %s" % (dir, host)
-            return host
-    raise Exception("there is'nt hadoop subdir host for the  dir:\" " + dir +
-                    " \" ,please check it")
+            host = os.path.join(current,line,'current/finalized')
+            if os.path.exists(host):
+                return host
+    err = "there is no hadoop file dir in path: {}".format(datapath)
+    raise Exception(err)
 
 
 def get_subdirs(host):
