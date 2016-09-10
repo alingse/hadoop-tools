@@ -31,37 +31,24 @@ def childpath(path):
 
 def get_subdir_host(datapath):
     current = os.path.join(datapath,'current')
-    lines = lspath(current).split('\n')
+    things = lsthings(current)
 
-    for line in lines:
-        if 'BP' in line:
-            host = os.path.join(current,line,'current/finalized')
+    for thing in things:
+        if 'BP' in things:
+            host = os.path.join(current,thing,'current/finalized')
             if os.path.exists(host):
                 return host
     err = "there is no hadoop file dir in path: {}".format(datapath)
     raise Exception(err)
 
 
-def get_subdirs(host):
-    childs_v0 = [host]
-    childs_v1 = reduce(list.__add__,map(childpath,childs_v0))
-    #childs_v1 = childpath(host)
-    childs_v2 = reduce(list.__add__,map(childpath,childs_v1))
-    #subdir
-    subdirs = map(lambda p:p[len(host):],childs_v2)
+def get_subdirs(host,level=2):
+    childs = [host]
+    for i in range(level):
+        childs = reduce(list.__add__,map(childpath,childs))
+    subdirs = map(lambda p:p[len(host):],childs)
     return subdirs
 
-'''
-def get_subdirs(host):
-    subdirs = []
-    first_subdir = lspath(host).split('\n')
-    for f_subdir in first_subdir:
-        second_subdir = lspath(host + '/' + f_subdir).split('\n')
-        for s_subdir in second_subdir:
-            subdirs.append(f_subdir + '/' + s_subdir)
-    return subdirs
-
-'''
 
 def get_blocks(host, subdir):
     out = lspath(host + '/' + subdir)
