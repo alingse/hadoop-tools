@@ -51,12 +51,15 @@ def get_subdirs(host,level=2):
 
 
 def get_blocks(host, subdir):
-    out = lspath(host + '/' + subdir)
-    blockfiles = out.split('\n')
+    path = os.path.join(host,subdir)
+    things = lsthings(path)
+
+    blockfiles = set(things)
+    
     block_pairs = []
-    for blockfile in blockfiles:
-        if 'meta' in blockfile:
-            block_meta = blockfile
+    for file in blockfiles:
+        if 'meta' in file:
+            block_meta = file
             block = block_meta[:block_meta.rfind('_')]
             if block in blockfiles:
                 block_pairs.append([block, block_meta])
