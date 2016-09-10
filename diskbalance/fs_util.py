@@ -15,15 +15,17 @@ def lspath(path):
 
 
 def lsthings(path):
-    pass
+    out = check_output(['ls',path])
+    things = out.rstrip('\n').split('\n')
+    return things
+
 
 def childpath(path):
-    lines = lspath(path).split('\n')
+    things = lsthings(path)
     childs = []
-    for line in lines:
-        child = os.path.join(path,line)
+    for thing in things:
+        child = os.path.join(path,thing)
         childs.append(child)
-
     return childs
 
 
@@ -39,15 +41,17 @@ def get_subdir_host(datapath):
     err = "there is no hadoop file dir in path: {}".format(datapath)
     raise Exception(err)
 
-'''
+
 def get_subdirs(host):
     childs_v0 = [host]
     childs_v1 = reduce(list.__add__,map(childpath,childs_v0))
     #childs_v1 = childpath(host)
     childs_v2 = reduce(list.__add__,map(childpath,childs_v1))
-    return childs_v2
-'''
+    #subdir
+    subdirs = map(lambda p:p[len(host):],childs_v2)
+    return subdirs
 
+'''
 def get_subdirs(host):
     subdirs = []
     first_subdir = lspath(host).split('\n')
@@ -57,7 +61,7 @@ def get_subdirs(host):
             subdirs.append(f_subdir + '/' + s_subdir)
     return subdirs
 
-
+'''
 
 def get_blocks(host, subdir):
     out = lspath(host + '/' + subdir)
