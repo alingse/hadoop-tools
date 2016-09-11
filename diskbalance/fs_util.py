@@ -3,6 +3,7 @@
 #2015.11.19
 
 from subprocess import check_output
+import commands
 #import operator
 import sys
 import os
@@ -13,12 +14,10 @@ def lspath(path):
     out = check_output(['ls',path])
     return out
 
-
 def lsthings(path):
     out = check_output(['ls',path])
     things = out.rstrip('\n').split('\n')
     return things
-
 
 def childpath(path):
     things = lsthings(path)
@@ -55,7 +54,7 @@ def get_blocks(host, subdir):
     things = lsthings(path)
 
     blockfiles = set(things)
-    
+
     block_pairs = []
     for file in blockfiles:
         if 'meta' in file:
