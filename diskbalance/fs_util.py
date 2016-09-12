@@ -3,7 +3,7 @@
 #2015.11.19
 
 from subprocess import check_output
-import commands
+import subprocess
 #import operator
 import sys
 import os
@@ -40,14 +40,12 @@ def get_subdir_host(datapath):
     err = "there is no hadoop file dir in path: {}".format(datapath)
     raise Exception(err)
 
-
-def get_subdirs(host,level=2):
+def get_subdirs(host, level=2):
     childs = [host]
     for i in range(level):
         childs = reduce(list.__add__,map(childpath,childs))
     subdirs = map(lambda p:p[len(host):],childs)
     return subdirs
-
 
 def get_blocks(host, subdir):
     path = os.path.join(host,subdir)
@@ -66,21 +64,23 @@ def get_blocks(host, subdir):
     return block_pairs
 
 
-def copyfile(fromfile, tofile):
-    status, out = commands.getstatusoutput("cp " + fromfile + "  " + tofile)
-    if status != 0:
-        print 'cp the file:failed:::' + fromfile + " " + tofile + " " + out
-        return False, out
-    return True, None
+def execmd(args):
+    child = subprocess.Popen(args,stdout=subprocess.PIPE)
+    out,err = child.communicate()
+    code = child.returncode
+    if code == 0:
+        return True,out
+    return False,err
 
+def copyfile(fromfile, tofile):
+    cmds = ['cp',fromfile,tofile]
+    status,msg = execmd(cmds)
+    return status,msg
 
 def rmfile(filepath):
-    status, out = commands.getstatusoutput('rm ' + filepath)
-    if status != 0:
-        print 'rm the file:failed:::' + filepath + " " + out
-        return False, out
-    return True, None
-
+    cmds = ['rm',filepath]
+    status,msg = execmd(cmds)
+    return status,msg
 
 def safe_mv(from_host, to_host, from_subdir, block_pair):
 
