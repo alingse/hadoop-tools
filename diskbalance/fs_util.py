@@ -2,6 +2,7 @@
 #author@alingse
 #2015.11.19
 
+from __future__ import print_function
 from subprocess import check_output
 import subprocess
 #import operator
@@ -72,8 +73,8 @@ def execmd(args):
         return True,out
     return False,err
 
-def copyfile(fromfile, tofile):
-    cmds = ['cp',fromfile,tofile]
+def copyfile(file_from, file_to):
+    cmds = ['cp',file_from,file_to]
     status,msg = execmd(cmds)
     return status,msg
 
@@ -82,88 +83,89 @@ def rmfile(filepath):
     status,msg = execmd(cmds)
     return status,msg
 
-def safe_mv(from_host, to_host, from_subdir, block_pair):
+def safe_mv(host_from, host_to, subdir, block_pair,log=print):
+    block, meta = block_pair
+    path_from = os.path.join(host_from,subdir)
+    path_to = os.path.join(host_to,subdir)
 
-    block, block_meta = block_pair
-    from_path = from_host + "/" + from_subdir
-    to_path = to_host + "/" + from_subdir
     istrue_block = None
-    istrue_block_meta = None
+    istrue_meta = None
 
     needexit = None
     rmdown = None
 
     try:
-        status, out = commands.getstatusoutput("mkdir -p " + to_path)
-        print 'mv| try mv ' + from_path + "/" + block + ' to:' + to_path + "/" + block
-        istrue_block, out = copyfile(from_path + "/" + block,
-                                     to_path + "/" + block)
-        print 'mv| try mv ' + from_path + "/" + block_meta + ' to:' + to_path + "/" + block_meta
-        istrue_block_meta, out = copyfile(from_path + "/" + block_meta,
-                                          to_path + "/" + block_meta)
-        if istrue_block and istrue_block_meta:
-            print 'mv| cp success:: and try rm the olds'
-            rmfile(from_path + "/" + block)
-            rmfile(from_path + "/" + block_meta)
+        status,msg = execmd(['mkdir','-p',to_path])
+
+        #copy block
+        block_from = os.path.join(path_from,block)
+        block_to = os.path.join(path_to,block)
+        istrue_block,msg = copyfile(block_from,block_to)
+
+        #copy meta
+        meta_from = os.path.join(path_from,meta)
+        meta_to = os.path.join(path_to,meta)
+        istrue_meta,msg = copyfile(meta_from,meta_to)
+
+        #rm the olds
+        if istrue_block and istrue_meta:
+            #copy sucess && rm the olds
+            rmfile(block_from)
+            rmfile(meta_from)
             rmdown = True
-            print 'mv| rm success:: this operate down'
+            log('mv block:',block_from,' sucess')
             return True
     except KeyboardInterrupt, e:
-        print ''
-        print 'I know you want exit,please wait minutes', istrue_block, istrue_block_meta
+        log('I know you want exit,please wait minutes !!!',istrue_block,istrue_meta)
         needexit = True
-    #go on
-    if istrue_block and istrue_block_meta:
+
+    #patch for roll back
+    if istrue_block and istrue_meta:
         if not rmdown:
-            print 'not down the job:rm olds '
-            rmfile(from_path + "/" + block)
-            rmfile(from_path + "/" + block_meta)
-        print 'mv| this success rm olds '
+            log('not down the job: rm olds ')
+            rmfile(block_from)
+            rmfile(meta_from)
     else:
-        print 'this mv broke so find and try rm the new copy'
-        #if istrue_block:
-        #    print 'rm the  new block file:'+to_path+"/"+block
-        #    rmfile(to_path+"/"+block)
-        #if istrue_block_meta:
-        #    print 'rm the  new block_meta file:'+to_path+"/"+block_meta
-        #    rmfile(to_path+"/"+block_meta)
-        rmfile(to_path + "/" + block)
-        rmfile(to_path + "/" + block_meta)
+        log('copy interrupted && roll back')
+        rmfile(block_to)
+        rmfile(meta_to)
 
     if not needexit:
         return False
     raise Exception("!!sucess exit")
 
-
 def countblock():
     pass
 
-
-def dfpath(path):
-    status, out = commands.getstatusoutput('df ' + path)
-    if status != 0:
-        raise Exception("run \" df " + path + " \" error ,please check it")
-    disk_metas = re.sub("[ ]+", "\t", out.split('\n')[1]).split('\t')
-    #blocks
-    #all---used---available
-    disk_metas[1:4] = map(int, disk_metas[1:4])
-    #precent
-    disk_metas[4] = int(disk_metas[4].replace("%", ""))
+def dfpath(datapath):
+    out = check_output(['df',datapath])
+    info = out.split('\n')[1]
+    info = re.sub("[ ]+", "\t",info)
+    disk_metas = info.split('\t')
+    #Capacity /precent 30%
+    disk_metas[4] = disk_metas[4].replace("%", "")
+    #all---used---available---Capacity
+    disk_metas[1:5] = map(int, disk_metas[1:5])
     return disk_metas
 
 
 if __name__ == '__main__':
+    path = sys.argv[2]
     if sys.argv[1] == "df":
-        path = sys.argv[2]
-        print dfpath(path)
+        metas = dfpath(path)
+        print(metas)
     if sys.argv[1] == "ls":
-        path = sys.argv[2]
-        print lspath(path)
+        out = lspath(path)
+        print(out)
+    if sys.argv[1] == 'things':
+        things = lsthings(path)
+        print(things)
     if sys.argv[1] == "host":
-        dir = sys.argv[2]
-        print get_subdir_host(dir)
+        datapath = path
+        host = get_subdir_host(datapath)
+        print(host)
     if sys.argv[1] == "subdir":
-        host = sys.argv[2]
+        host = path
         subdirs = get_subdirs(host)
         for s in subdirs:
-            print s
+            print(s)
