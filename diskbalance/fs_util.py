@@ -141,12 +141,12 @@ def dfpath(datapath):
     out = check_output(['df',datapath])
     info = out.split('\n')[1]
     info = re.sub("[ ]+", "\t",info)
-    disk_metas = info.split('\t')
+    disk_meta = info.split('\t')
     #Capacity /precent 30%
-    disk_metas[4] = disk_metas[4].replace("%", "")
+    disk_meta[4] = disk_meta[4].replace("%", "")
     #all---used---available---Capacity
-    disk_metas[1:5] = map(int, disk_metas[1:5])
-    return disk_metas
+    disk_meta[1:5] = map(int, disk_meta[1:5])
+    return disk_meta
 
 
 if __name__ == '__main__':
