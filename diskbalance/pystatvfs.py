@@ -2,42 +2,49 @@
 #author@alingse
 #2015.11.19
 
+from __future__ import print_function
 from copy import deepcopy
+from operator import itemgetter
+
 from fs_util import dfpath
 from fs_util import get_subdir_host, get_subdirs, get_blocks
 from fs_util import safe_mv
+
+#config from hadoop-site.xml/hdfs-site.xml
 
 block_size = 256 * 1024
 
 
 #disk_meta
 #devsd,allb,usedb,availb,precent,mnt,dir
-def stat_dir(dirs):
-    disk_infod = {}
-    for dir in dirs:
-        disk_meta = dfpath(dir)
-        disk_meta.append(dir)
+def stat_dir(datapaths):
+    tmp = {}
+    for datapath in datapaths:
+        disk_meta = dfpath(datapath)
+        disk_meta.append(datapath)
         devsd = disk_meta[0]
-        disk_infod[devsd] = disk_meta
+        tmp[devsd] = disk_meta
 
-    disk_metas = disk_infod.values()
-    disk_metas_sort = sorted(disk_metas, lambda a, b: cmp(a[3], b[3]))
-    for disk_meta in disk_metas_sort:
-        print disk_meta
-    return disk_metas_sort
+    disk_metas = tmp.values()
+    #sort by available-blocks
+    disk_metas = sorted(disk_metas,key=itemgetter(3))
+    for disk_meta in disk_metas:
+        print(disk_meta)
+    return disk_metas
 
 
 def calculate_disk(disk_metas):
-    disk_count = len(disk_metas)
+    N = len(disk_metas)
     disk_avails = [disk_meta[3] for disk_meta in disk_metas]
 
-    disk_avail_avg = sum(disk_avails) / disk_count
+    disk_avail_avg = sum(disk_avails) / N
     disk_avails_diff = [disk_avail - disk_avail_avg
                         for disk_avail in disk_avails]
     disk_block_diff = [disk_diff / block_size
                        for disk_diff in disk_avails_diff]
-
-    print disk_block_diff
+    #for print
+    for i in range(N):
+        print(meta[i],disk_block_diff[i])
     return disk_block_diff
 
 
@@ -57,9 +64,10 @@ def balance_diff(disk_block_diff):
         if disk_block_diff[end] == 0:
             end -= 1
 
+    #mv jobs
     for job in mv_jobs:
-        print job
-    print disk_block_diff
+        print(job)
+    print('after balance:',disk_block_diff)
     return mv_jobs
 
 
@@ -81,36 +89,43 @@ def do_mv_detail(mv_detail):
     mv_from = mv_detail['mv_from']
     mv_block = mv_detail['mv_block']
 
-    to_host = get_subdir_host(mv_to)
+    host_to = get_subdir_host(mv_to)
+    host_from = get_subdir_host(mv_from)
 
-    from_host = get_subdir_host(mv_from)
-    from_subdirs = get_subdirs(from_host)
+    subdirs = get_subdirs(host_from)
 
-    for from_subdir in from_subdirs:
+    for subdir in subdirs:
         if mv_block <= 0:
             break
-        block_pairs = get_blocks(from_host, from_subdir)
-        print mv_from, mv_block, from_subdir, len(block_pairs), mv_to
+        block_pairs = get_blocks(host_from, subdir)
+
+        print(mv_from, mv_block, subdir, len(block_pairs), mv_to)
+
         for block_pair in block_pairs:
             try:
-                istrue = safe_mv(from_host, to_host, from_subdir, block_pair)
+                istrue = safe_mv(host_from, host_to, subdir, block_pair)
                 if istrue:
                     mv_block -= 1
-            except Exception, e:
-                print e
+            except Exception as e:
+                print(e)
                 return False
+            #break
             if mv_block <= 0:
                 break
     return True
 
 
 if __name__ == '__main__':
-    dirs = ['/mnt/hdfs/data%s/hadoop_data' % i for i in range(1, 8)]
-    disk_metas = stat_dir(dirs)
+    #this should read from hdfs-site.xml
+    datapaths = ['/mnt/hdfs/data%s/hadoop_data'.format(i) for i in range(1, 8)]
+    
+    disk_metas = stat_dir(datapaths)
+
     disk_block_diff = calculate_disk(disk_metas)
+
     mv_jobs = balance_diff(disk_block_diff)
     mv_details = explain_mv_jobs(disk_metas, mv_jobs)
-    #mv_detail=mv_details[0]
+    
     for mv_detail in mv_details:
         status = do_mv_detail(mv_detail)
         if status == False:
